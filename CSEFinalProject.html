@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bathroom Sign Out/In Sheet</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .container { max-width: 600px; margin: auto; text-align: center; }
+    .question { margin: 20px 0; font-size: 1.2em; }
+    .response { margin: 10px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Bathroom Sign Out/In Sheet</h1>
+    <p id="topic-description">Submit your ID, time out, and time in. Reset at the end of the day.</p>
+
+    <div id="question-container">
+      <p id="question" class="question"></p>
+      <input type="text" id="response" class="response" placeholder="Enter numbers only" />
+      <button onclick="nextQuestion()">Next</button>
+    </div>
+
+    <button onclick="resetData()">Reset</button>
+    <button onclick="exportData()">Export as CSV</button>
+
+    <canvas id="chart" width="400" height="200"></canvas>
+  </div>
+
+  <script>
+    const questions = ["What is your ID number?", "Time out (HourMinute, no spaces)", "Time in (HourMinute, no spaces)"];
+    let currentQuestionIndex = 0;
+    let responses = JSON.parse(localStorage.getItem('responses')) || [];
+
+    // Ensure responses is an array of arrays
+    if (!Array.isArray(responses) || !responses.every(row => Array.isArray(row))) {
+      responses = [];
+    }
+
+    // Load the first question
+    document.getElementById("question").textContent = questions[currentQuestionIndex];
+
+    function nextQuestion() {
+      const responseInput = document.getElementById("response");
+      const response = responseInput.value.trim();
+
+      // Validate that the response is numeric
+      if (!/^[0-9]+$/.test(response)) {
+        alert("Please enter numbers only.");
+        responseInput.value = '';
+        return;
+      }
+
+      // Add the response to the last row or create a new one
+      if (responses.length === 0 || responses[responses.length - 1].length === questions.length) {
+        responses.push([]);
+      }
+      responses[responses.length - 1].push(response);
+
+      localStorage.setItem('responses', JSON.stringify(responses));
+
+      currentQuestionIndex++;
+
+      // Check if all questions have been answered
+      if (currentQuestionIndex < questions.length) {
+        document.getElementById("question").textContent = questions[currentQuestionIndex];
+        responseInput.value = '';
+      } else {
+        alert("Your bathroom trip has been logged! Restarting the questions.");
+        currentQuestionIndex = 0; // Restart questions
+        document.getElementById("question").textContent = questions[currentQuestionIndex];
+        responseInput.value = '';
+      }
+    }
+
+    function resetData() {
+      responses = [];
+      localStorage.removeItem('responses');
+      alert("Data has been reset!");
+      currentQuestionIndex = 0;
+      document.getElementById("question").textContent = questions[currentQuestionIndex];
+      document.getElementById("response").value = '';
+    }
+
+    function exportData() {
+      // Ensure responses is well-structured
+      if (!Array.isArray(responses) || !responses.every(row => Array.isArray(row))) {
+        alert("Data structure error. Resetting data.");
+        resetData();
+        return;
+      }
+
+      const csvContent = "data:text/csv;charset=utf-8," + responses.map(row => row.join(",")).join("\n");
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", "responses.csv");
+      document.body.appendChild(link);
+      link.click();
+    }
+  </script>
+</body>
+</html>
